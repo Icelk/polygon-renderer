@@ -1,0 +1,10 @@
+[package]
+name = "polygon-problem"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+image = { version = "0.24.4", default-features = false, features = ["png"] }
+std-dev = { version = "0.1.0", path = "../std-dev", default-features = false, features = ["percentile-rand"] }
