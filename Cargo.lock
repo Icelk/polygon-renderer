@@ -83,6 +83,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "hypermelon"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "17586512ea784af78de466c46f11fe96b53d67e0393cb7504cac1b7d2121200e"
+
+[[package]]
 name = "image"
 version = "0.24.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -244,6 +250,7 @@ name = "std-dev"
 version = "0.1.0"
 dependencies = [
  "getrandom",
+ "hypermelon",
  "rand",
 ]
 

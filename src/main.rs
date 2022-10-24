@@ -54,7 +54,7 @@ impl Points {
         }
     }
     /// May not contains duplicates
-    /// (can be fixed by )
+    /// (can be fixed by putting the points in a hashmap (O(n)))
     pub fn sort_using_dot_product(mut self) -> OrderedPoints {
         // O(n)
         let n_th_largest_x = |n: usize, l: &mut [Point]| {
@@ -92,9 +92,11 @@ impl Points {
         self.list.insert(0, second);
         self.list.insert(0, first);
 
+        self.assume_ordered()
+    }
+    pub fn assume_ordered(self) -> OrderedPoints {
         OrderedPoints(self)
     }
-    // pub fn sort_using_every_other_x_sorted(self) -> OrderedPoints {}
 }
 #[derive(Debug, Clone)]
 struct OrderedPoints(Points);
@@ -198,9 +200,12 @@ fn render(
 
 fn main() {
     let x_range = -5.0..2.5;
-    let y_range = -2.0..10.;
+    let y_range = -2.0..5.;
+    // arbetrary polygon rendering (concave) by only checking if an equation matches if the side
+    // "extends" into the realm of the point. All those which can include the point have to have it
+    // on the right side.
     let pts = Points::new(vec![
-        (1., 4.),
+        (2., 4.),
         (2., 0.),
         (-2., -1.),
         (-4., 3.),
@@ -210,11 +215,15 @@ fn main() {
         (2.6, 2.1),
     ])
     .sort_using_dot_product();
+
+    // concave
+    // let pts =
+    // Points::new(vec![(1., 0.), (2., 4.), (-1., 2.), (-4., 3.), (-2., -1.)]).assume_ordered();
     render(x_range, y_range, &pts).save("out.png").unwrap();
     println!(
         "Pts: {:?}, (0,0) {} (-3,1) {}",
         pts,
         pts.contains((0., 0.).into()),
-        pts.contains((-3., 1.).into())
+        pts.contains((-2., 2.).into())
     );
 }
