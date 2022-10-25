@@ -53,7 +53,7 @@ impl Points {
             list: v.into_iter().map(Into::into).collect(),
         }
     }
-    /// May not contains duplicates
+    /// May not contain duplicates
     /// (can be fixed by putting the points in a hashmap (O(n)))
     pub fn sort_using_dot_product(mut self) -> OrderedPoints {
         // O(n)
