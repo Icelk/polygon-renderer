@@ -141,6 +141,42 @@ impl OrderedPoints {
         true
     }
 }
+struct OptimizedEvaluator {
+    functions: Vec<(LineFunction, bool)>,
+}
+impl OptimizedEvaluator {
+    /// # Panics
+    ///
+    /// Panics if `points` has fewer than 2 points.
+    pub fn new(points: &OrderedPoints) -> Self {
+        let mut fns = Vec::with_capacity(points.0.list.len() + 1);
+        for points in points.0.list.windows(2) {
+            let p1 = points[0];
+            let p2 = points[1];
+            fns.push((LineFunction::new(p1, p2), p2.x < p1.x));
+        }
+        {
+            let p1 = *points.0.list.last().unwrap();
+            let p2 = *points.0.list.first().unwrap();
+            fns.push((LineFunction::new(p1, p2), p2.x < p1.x));
+        }
+        Self { functions: fns }
+    }
+    pub fn contains(&self, p: Point) -> bool {
+        for (f, p2_is_less) in &self.functions {
+            let value = f.evaluate(p.x);
+            let b = if *p2_is_less {
+                p.y <= value
+            } else {
+                p.y >= value
+            };
+            if !b {
+                return false;
+            }
+        }
+        true
+    }
+}
 
 #[derive(Debug, Clone, Copy)]
 struct LineFunction {
@@ -183,15 +219,62 @@ fn render(
     let x_res = 512;
     let y_res = 512;
 
+    let optimized_eval = OptimizedEvaluator::new(points);
+
     let now = Instant::now();
     let img = image::RgbImage::from_fn(x_res, y_res, |x, y| {
         let y = y_res - y;
         let x = x_range.start + x as f64 / x_res as f64 * x_dist;
         let y = y_range.start + y as f64 / y_res as f64 * y_dist;
-        if points.contains(Point { x, y }) {
+        if optimized_eval.contains(Point { x, y }) {
             image::Rgb([255, 255, 255])
         } else {
             image::Rgb([0, 0, 0])
+        }
+    });
+    println!("Took {:?}", now.elapsed());
+    img
+}
+#[allow(clippy::uninit_vec, clippy::cast_ref_to_mut)]
+fn render_parallel(
+    x_range: std::ops::Range<f64>,
+    y_range: std::ops::Range<f64>,
+    points: &OrderedPoints,
+) -> image::RgbImage {
+    use rayon::prelude::*;
+    let x_dist = x_range.end - x_range.start;
+    let y_dist = y_range.end - y_range.start;
+    let x_res = 512;
+    let y_res = 512;
+
+    let optimized_eval = OptimizedEvaluator::new(points);
+
+    // init rayon threadpool
+    rayon::spawn(|| {});
+
+    let now = Instant::now();
+    let xes: Vec<_> = (0..x_res)
+        .into_iter()
+        .map(|x| x_range.start + x as f64 / x_res as f64 * x_dist)
+        .collect();
+    let mut storage = Vec::with_capacity((3 * x_res * y_res) as usize);
+    unsafe { storage.set_len(storage.capacity()) };
+    let img = image::RgbImage::from_raw(x_res, y_res, storage).unwrap();
+    (0..y_res).into_par_iter().for_each(|y| {
+        let img = &img;
+        let y_coord = y_range.start + y as f64 / y_res as f64 * y_dist;
+        let img = unsafe { &mut *(img as *const _ as *mut image::RgbImage) };
+        for x in 0..x_res {
+            let x_coord = xes[x as usize];
+            let pixel = if optimized_eval.contains(Point {
+                x: x_coord,
+                y: y_coord,
+            }) {
+                image::Rgb([255, 255, 255])
+            } else {
+                image::Rgb([0, 0, 0])
+            };
+            img.put_pixel(x, y, pixel)
         }
     });
     println!("Took {:?}", now.elapsed());
@@ -219,7 +302,9 @@ fn main() {
     // concave
     // let pts =
     // Points::new(vec![(1., 0.), (2., 4.), (-1., 2.), (-4., 3.), (-2., -1.)]).assume_ordered();
-    render(x_range, y_range, &pts).save("out.png").unwrap();
+    render_parallel(x_range, y_range, &pts)
+        .save("out.png")
+        .unwrap();
     println!(
         "Pts: {:?}, (0,0) {} (-3,1) {}",
         pts,

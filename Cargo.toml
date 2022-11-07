@@ -7,4 +7,5 @@ edition = "2021"
 
 [dependencies]
 image = { version = "0.24.4", default-features = false, features = ["png"] }
+rayon = "1.5.3"
 std-dev = { version = "0.1.0", path = "../std-dev", default-features = false, features = ["percentile-rand"] }
